@@ -96,7 +96,7 @@ const ROUNDS = [
   {
     id: 1,
     title: "",
-    challenge: "IDENTIFY THE SECURITY TERM",
+    challenge: "",
     display: `? ? ? ? ? ? ? ? (8 letters)`,
     hint: "Secret key to access accounts. Should be strong & confidential. Used in login authentication.",
     answer: "PASSWORD",
@@ -105,7 +105,7 @@ const ROUNDS = [
   {
     id: 2,
     title: "",
-    challenge: "DECODE & REVERSE",
+    challenge: "",
     display: `01000011 01001111 01000100 01000101`,
     hint: "Step 1: Convert Binary → ASCII Text. Step 2: Reverse the decoded word.",
     answer: "EDOC",
@@ -114,7 +114,7 @@ const ROUNDS = [
   {
     id: 3,
     title: "",
-    challenge: "DECODE BASE64 → REPLACE NUMBER",
+    challenge: "",
     display: `U2FmZTM=`,
     hint: "Decode the Base64 string first. Then replace any digit with its corresponding alphabet letter (1=A, 2=B, 3=C…).",
     answer: "SAFEC",
@@ -123,7 +123,7 @@ const ROUNDS = [
   {
     id: 4,
     title: "",
-    challenge: "APPLY SHIFT -3 TO DECRYPT",
+    challenge: "",
     display: `Z H O F R P H`,
     hint: "Caesar Cipher with a shift of -3. Each letter moves 3 positions backward in the alphabet.",
     answer: "WELCOME",
@@ -132,7 +132,7 @@ const ROUNDS = [
   {
     id: 5,
     title: "",
-    challenge: "CONVERT BINARY TO TEXT",
+    challenge: "",
     display: `01001100 01001111 01000011 01001011`,
     hint: "Convert each 8-bit binary group to its ASCII character. 76=L, 79=O, 67=C, 75=K.",
     answer: "LOCK",
@@ -141,7 +141,7 @@ const ROUNDS = [
   {
     id: 6,
     title: "",
-    challenge: "EXTRACT CAPITAL LETTERS ONLY",
+    challenge: "",
     display: `CrYpTo Is FuN AnD SeCuRe`,
     hint: "Observe each character carefully. Extract only the uppercase (capital) letters in sequence.",
     answer: "CRYPTOFANS",
@@ -150,7 +150,7 @@ const ROUNDS = [
   {
     id: 7,
     title: "",
-    challenge: "REPLACE VOWELS WITH NEXT ALPHABET",
+    challenge: "",
     display: `SECURE`,
     hint: "Keep all consonants unchanged. For each vowel (A,E,I,O,U), replace it with the next letter in the alphabet.",
     answer: "SFCVRF",
