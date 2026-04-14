@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CYBER_BREACH — Security Challenge</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="scanline"></div>
+<canvas id="matrix-bg"></canvas>
+
+<!-- Boot Screen -->
+<div id="boot-screen" style="
+  position:fixed; top:0; left:0; right:0; bottom:0;
+  background:#000; z-index:50;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:8px; padding:40px;
+">
+  <div style="font-family:'VT323',monospace; font-size:clamp(28px,8vw,64px); color:#00ff41;
+              text-shadow:0 0 20px #00ff41; letter-spacing:6px; margin-bottom:20px;">
+    CYBER_BREACH
+  </div>
+  <div id="boot-log" style="width:100%; max-width:500px; min-height:120px;"></div>
+  <div style="margin-top:16px; font-size:11px; color:#3a6b3a; letter-spacing:3px;"
+       class="terminal-cursor">BOOTING SYSTEM</div>
+</div>
+
+<!-- Main Game (hidden until boot completes) -->
+<div id="main-game" style="display:none;">
+  <div class="container">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-title">CYBER_BREACH</div>
+      <div class="header-sub">Security Training Challenge System v3.7.1</div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-item">
+        <div class="status-dot"></div>
+        <span style="font-size:11px; letter-spacing:2px; color:#3a6b3a;">SYSTEM ONLINE</span>
+      </div>
+      <div class="status-item" style="gap:12px;">
+        <span style="font-size:11px; color:#3a6b3a; letter-spacing:2px;">ELAPSED:</span>
+        <span id="timer">00:00</span>
+      </div>
+      <div class="status-item">
+        <span style="font-size:11px; color:#3a6b3a; letter-spacing:2px;" class="agent-name">AGENT: TRAINEE</span>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-section">
+      <div class="progress-label">
+        <span style="letter-spacing:3px; font-size:11px;">MISSION PROGRESS</span>
+        <span style="letter-spacing:3px; font-size:11px; color:#3a6b3a;">0 / 7 COMPLETE</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:0%"></div>
+      </div>
+      <div class="round-pips">
+        <div class="pip active">01</div>
+        <div class="pip">02</div>
+        <div class="pip">03</div>
+        <div class="pip">04</div>
+        <div class="pip">05</div>
+        <div class="pip">06</div>
+        <div class="pip">07</div>
+      </div>
+    </div>
+
+    <!-- Hint Cards Panel -->
+    <div class="hints-panel">
+      <div class="hints-panel-header">
+        <span class="hints-panel-title">// INTEL BOARD — 7 FRAGMENTS INTERCEPTED. ORDER SCRAMBLED. MATCH EACH CLUE TO THE CORRECT LAYER.</span>
+        <button class="hints-toggle-btn" onclick="toggleHintsPanel()">[ COLLAPSE INTEL ]</button>
+      </div>
+      <div id="hint-cards-grid" class="hint-cards-grid"></div>
+    </div>
+
+    <!-- Rounds Container -->
+    <div id="rounds-container"></div>
+
+    <!-- Footer -->
+    <div style="text-align:center; margin-top:32px; font-size:11px; color:#1a3d1a; letter-spacing:3px; line-height:2;">
+      <div>// ANTHROPIC SECURITY TRAINING DIVISION</div>
+      <div>// ALL CHALLENGES ARE FOR EDUCATIONAL PURPOSES</div>
+      <div style="margin-top:8px;">
+        <button id="footer-restart" onclick="restart()" style="
+          background:transparent; border:1px solid #1a3d1a;
+          color:#1a3d1a; font-family:'Share Tech Mono',monospace;
+          font-size:11px; padding:6px 16px; cursor:pointer;
+          letter-spacing:2px; transition:all 0.2s;
+        " onmouseover="this.style.borderColor='#3a6b3a'; this.style.color='#3a6b3a';"
+           onmouseout="this.style.borderColor='#1a3d1a'; this.style.color='#1a3d1a';">
+          [ RESTART MISSION ]
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Win Screen -->
+<div id="win-screen">
+  <div id="win-grid" class="win-grid"></div>
+
+  <div class="win-title">ACCESS GRANTED</div>
+  <div class="win-sub">// ALL SECURITY LEVELS BREACHED //</div>
+  <div style="font-size:13px; color:#3a6b3a; letter-spacing:3px; margin-bottom:4px;">
+    MISSION ACCOMPLISHED — AGENT CLEARED
+  </div>
+
+    <div class="win-stats">
+      <div class="win-stat">
+        <div class="win-stat-val" id="win-time">00:00</div>
+        <div class="win-stat-lbl">TIME ELAPSED</div>
+      </div>
+      <div class="win-stat">
+        <div class="win-stat-val" id="win-rounds">7</div>
+        <div class="win-stat-lbl">LAYERS BREACHED</div>
+      </div>
+      <div class="win-stat">
+        <div class="win-stat-val" id="win-team" style="font-size:24px;">—</div>
+        <div class="win-stat-lbl">TEAM</div>
+      </div>
+      <div class="win-stat">
+        <div class="win-stat-val">100%</div>
+        <div class="win-stat-lbl">COMPLETION</div>
+      </div>
+    </div>
+
+  <div style="font-size:11px; color:#3a6b3a; letter-spacing:3px; margin-bottom:24px; max-width:400px; line-height:2;">
+    YOU HAVE DEMONSTRATED EXCEPTIONAL CRYPTOGRAPHIC<br>
+    AND SECURITY ANALYSIS SKILLS. WELL DONE, AGENT.
+  </div>
+
+  <div style="font-size:28px; margin-bottom:16px; animation: flicker 3s infinite;">🎉</div>
+
+  <div style="font-size:11px; color:#1a3d1a; letter-spacing:3px; margin-top:12px;">
+    // MISSION PERMANENTLY LOCKED — NO RESTART PERMITTED
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
