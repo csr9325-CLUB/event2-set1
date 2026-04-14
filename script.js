@@ -91,6 +91,9 @@ function playUnlock() {
 
 /* ══════════════════════════════════════════════
    ROUNDS DATA
+   answers are SHA-256 hashes — never stored
+   as plain text anywhere in this file.
+   hash = SHA-256( answer.trim().toUpperCase() )
 ══════════════════════════════════════════════ */
 const ROUNDS = [
   {
@@ -99,7 +102,7 @@ const ROUNDS = [
     challenge: "",
     display: `? ? ? ? ? ? ? ? (8 letters)`,
     hint: "Secret key to access accounts. Should be strong & confidential. Used in login authentication.",
-    answer: "PASSWORD",
+    answer: "0be64ae89ddd24e225434de95d501711339baeee18f009ba9b4369af27d30d60",
     type: "text"
   },
   {
@@ -108,7 +111,7 @@ const ROUNDS = [
     challenge: "",
     display: `01000011 01001111 01000100 01000101`,
     hint: "Step 1: Convert Binary → ASCII Text. Step 2: Reverse the decoded word.",
-    answer: "EDOC",
+    answer: "75a3abce1e952d153eb25fcf2418f31f8a547d254ca63bbbe5748e332ba4cf39",
     type: "binary"
   },
   {
@@ -117,7 +120,7 @@ const ROUNDS = [
     challenge: "",
     display: `U2FmZTM=`,
     hint: "Decode the Base64 string first. Then replace any digit with its corresponding alphabet letter (1=A, 2=B, 3=C…).",
-    answer: "SAFEC",
+    answer: "87f8142e207b8d763f9a79eddf7162318624410632c5d484694b7a3a97ce4d40",
     type: "base64"
   },
   {
@@ -126,7 +129,7 @@ const ROUNDS = [
     challenge: "",
     display: `Z H O F R P H`,
     hint: "Caesar Cipher with a shift of -3. Each letter moves 3 positions backward in the alphabet.",
-    answer: "WELCOME",
+    answer: "26ded0381cd50f5eb2dbd2954958d050b79bc9a6afd3f5fc356580f9510f4483",
     type: "caesar"
   },
   {
@@ -135,7 +138,7 @@ const ROUNDS = [
     challenge: "",
     display: `01001100 01001111 01000011 01001011`,
     hint: "Convert each 8-bit binary group to its ASCII character. 76=L, 79=O, 67=C, 75=K.",
-    answer: "LOCK",
+    answer: "74c4812d040abf67ed4aca878fd35d5925655f1c4631b23bc63c6b5d11dd8dc5",
     type: "binary2"
   },
   {
@@ -144,7 +147,7 @@ const ROUNDS = [
     challenge: "",
     display: `CrYpTo Is FuN AnD SeCuRe`,
     hint: "Observe each character carefully. Extract only the uppercase (capital) letters in sequence.",
-    answer: "CRYPTOFANS",
+    answer: "7f3fc252d00a54275c5809f642df386a6629daadf64e06d8439c3943c693f733",
     type: "acrostic"
   },
   {
@@ -153,7 +156,7 @@ const ROUNDS = [
     challenge: "",
     display: `SECURE`,
     hint: "Keep all consonants unchanged. For each vowel (A,E,I,O,U), replace it with the next letter in the alphabet.",
-    answer: "SFCVRF",
+    answer: "11b69b051409551f5cea4a447145d0d0b38a38e8365e8e630b0516aa84793337",
     type: "multi"
   }
 ];
@@ -166,6 +169,14 @@ function shuffleArray(arr) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+/* ── SHA-256 via Web Crypto API (async) ── */
+async function sha256(str) {
+  const buf  = await crypto.subtle.digest('SHA-256',
+    new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
 /* ══════════════════════════════════════════════
@@ -434,167 +445,47 @@ function updateProgress() {
 }
 
 /* ══════════════════════════════════════════════
-   INTEL DECK  —  single card reveal with flip
-   animation. Real hints + dummy decoys mixed
-   and shuffled. One card visible at a time.
-   Button cycles through the deck.
+   BUILD HINT CARDS  (shuffled, no labels)
 ══════════════════════════════════════════════ */
-
-/* 7 real hints (one per round) + 7 dummy decoys */
-const DUMMY_HINTS = [
-  "Apply a frequency analysis on the repeating octets. The statistical distribution of bit-pairs reveals the encoding schema.",
-  "Look for steganographic markers in the whitespace. Zero-width characters often carry the true payload.",
-  "The checksum of all character codes modulo 31 yields the shift value for the outer cipher layer.",
-  "Reverse the nibble order of each hex byte before converting. The endianness inversion is the key.",
-  "Substitute each symbol with its phonetic alphabet equivalent, then extract every third consonant.",
-  "The answer is embedded as a Fibonacci subsequence within the numeric values of the ASCII codes.",
-  "XOR each character code with the index value plus the sum of all previous indices to decode."
-];
-
-/* Deck state — persists in sessionStorage */
-const SK_DECK_IDX = 'cb_deck_idx';
-
-let deckCards     = [];   // array of {text, isReal} objects
-let currentDeckIdx = 0;
-let deckBuilt     = false;
-
-function buildDeck() {
-  if (deckBuilt) return;
-  deckBuilt = true;
-
-  /* Restore or create shuffled deck */
-  const savedOrder = ss(SK.HINT_ORDER);
-  let realOrder = [];
-  if (savedOrder) {
-    try { realOrder = JSON.parse(savedOrder); } catch(e) {}
-  }
-  if (!realOrder.length) {
-    realOrder = shuffleArray(ROUNDS.map((_,i) => i));
-    ss(SK.HINT_ORDER, JSON.stringify(realOrder));
-  }
-  state.shuffledHintIndices = realOrder;
-
-  /* Build cards: real hints in shuffled order */
-  const realCards = realOrder.map(idx => ({
-    text: ROUNDS[idx].hint,
-    isReal: true,
-    tag: ['INTEL FRAGMENT','INTERCEPT','SIGNAL','CLASSIFIED','PATTERN','ALGORITHM','VECTOR'][Math.floor(Math.random()*7)]
-  }));
-
-  /* Dummy decoys */
-  const dummyCards = DUMMY_HINTS.map(h => ({
-    text: h,
-    isReal: false,
-    tag: ['DECOY?','NOISE','CORRUPT','INVALID','GHOST','PHANTOM','SHADOW'][Math.floor(Math.random()*7)]
-  }));
-
-  /* Interleave: real + dummies, then shuffle the whole deck */
-  deckCards = shuffleArray([...realCards, ...dummyCards]);
-
-  /* Restore current index */
-  const savedIdx = ss(SK_DECK_IDX);
-  currentDeckIdx = savedIdx ? Math.min(parseInt(savedIdx,10), deckCards.length-1) : 0;
-}
-
 function buildHintCards() {
-  buildDeck();
-  renderDeckUI();
-}
-
-function renderDeckUI() {
   const grid = document.getElementById('hint-cards-grid');
   if (!grid) return;
   grid.innerHTML = '';
 
-  /* Wrapper shown when panel is open */
-  const wrapper = document.createElement('div');
-  wrapper.className = 'deck-wrapper';
-  wrapper.id = 'deck-wrapper';
+  // Restore or create shuffle order
+  let order = [];
+  const saved = ss(SK.HINT_ORDER);
+  if (saved) {
+    try { order = JSON.parse(saved); } catch(e) {}
+  }
+  if (!order.length) {
+    order = shuffleArray(ROUNDS.map((_,i) => i));
+    ss(SK.HINT_ORDER, JSON.stringify(order));
+  }
+  state.shuffledHintIndices = order;
 
-  /* Counter */
-  const counter = document.createElement('div');
-  counter.className = 'deck-counter';
-  counter.id = 'deck-counter';
-  counter.textContent = `FRAGMENT ${currentDeckIdx + 1} / ${deckCards.length}`;
-
-  /* Card stage */
-  const stage = document.createElement('div');
-  stage.className = 'deck-stage';
-  stage.id = 'deck-stage';
-
-  /* The card itself */
-  const card = document.createElement('div');
-  card.className = 'deck-card';
-  card.id = 'deck-card';
-  const c = deckCards[currentDeckIdx];
-  card.innerHTML = `
-    <div class="deck-card-inner" id="deck-card-inner">
-      <div class="deck-card-front">
-        <div class="deck-card-tag">${c.tag}</div>
-        <div class="deck-card-text">${c.text}</div>
-      </div>
-      <div class="deck-card-back">
-        <div class="deck-card-back-text">▓ ▓ ▓<br>LOADING<br>FRAGMENT<br>▓ ▓ ▓</div>
-      </div>
-    </div>
-  `;
-  stage.appendChild(card);
-
-  /* Next card button */
-  const nextBtn = document.createElement('button');
-  nextBtn.className = 'deck-next-btn';
-  nextBtn.id = 'deck-next-btn';
-  nextBtn.innerHTML = '[ NEXT FRAGMENT &rsaquo; ]';
-  nextBtn.onclick = advanceDeck;
-
-  wrapper.appendChild(counter);
-  wrapper.appendChild(stage);
-  wrapper.appendChild(nextBtn);
-  grid.appendChild(wrapper);
+  const tags = ['INTEL FRAGMENT','INTERCEPT','SIGNAL','CLASSIFIED','DECOY?','PATTERN','ALGORITHM'];
+  order.forEach((roundIdx, displayPos) => {
+    const round = ROUNDS[roundIdx];
+    const card  = document.createElement('div');
+    card.className   = 'hint-card';
+    card.id          = `hint-card-display-${displayPos}`;
+    card.innerHTML   = `
+      <div class="hint-card-tag">${tags[displayPos % tags.length]}</div>
+      <div class="hint-card-body">${round.hint}</div>
+    `;
+    grid.appendChild(card);
+  });
 }
 
-function advanceDeck() {
-  if (!deckCards.length) return;
-  beep(380,'square',0.06,0.12);
-
-  const inner = document.getElementById('deck-card-inner');
-  const counter = document.getElementById('deck-counter');
-  if (!inner) return;
-
-  /* Flip out */
-  inner.classList.add('flipping-out');
-
-  setTimeout(() => {
-    currentDeckIdx = (currentDeckIdx + 1) % deckCards.length;
-    ss(SK_DECK_IDX, String(currentDeckIdx));
-    counter.textContent = `FRAGMENT ${currentDeckIdx + 1} / ${deckCards.length}`;
-
-    const c = deckCards[currentDeckIdx];
-    inner.querySelector('.deck-card-front').querySelector('.deck-card-tag').textContent  = c.tag;
-    inner.querySelector('.deck-card-front').querySelector('.deck-card-text').textContent = c.text;
-
-    inner.classList.remove('flipping-out');
-    inner.classList.add('flipping-in');
-    beep(520,'square',0.05,0.1);
-
-    setTimeout(() => inner.classList.remove('flipping-in'), 350);
-  }, 300);
-}
-
-let hintsPanelOpen = false;   /* starts CLOSED */
+let hintsPanelOpen = true;
 function toggleHintsPanel() {
   const grid = document.getElementById('hint-cards-grid');
   const btn  = document.querySelector('.hints-toggle-btn');
   hintsPanelOpen = !hintsPanelOpen;
-  if (hintsPanelOpen) {
-    grid.style.display = 'block';
-    btn.textContent = '[ HIDE INTEL ]';
-    beep(480,'sine',0.08,0.15);
-  } else {
-    grid.style.display = 'none';
-    btn.textContent = '[ VIEW INTEL ]';
-    beep(320,'sine',0.08,0.12);
-  }
+  grid.style.display = hintsPanelOpen ? 'grid' : 'none';
+  btn.textContent = hintsPanelOpen ? '[ COLLAPSE INTEL ]' : '[ EXPAND INTEL ]';
+  beep(440,'sine',0.1,0.15);
 }
 
 /* ══════════════════════════════════════════════
@@ -663,27 +554,32 @@ function buildRounds() {
 function handleKey(e, idx) { if (e.key === 'Enter') checkAnswer(idx); }
 
 /* ══════════════════════════════════════════════
-   CHECK ANSWER
+   CHECK ANSWER  —  compares SHA-256(input)
+   against stored hash. Plain text answer is
+   NEVER present in memory or source at runtime.
 ══════════════════════════════════════════════ */
-function checkAnswer(idx) {
+async function checkAnswer(idx) {
   if (state.finished) return;
-  if (state.pausedBy) {
-    showPauseOverlay(state.pausedBy);
-    return;
-  }
+  if (state.pausedBy) { showPauseOverlay(state.pausedBy); return; }
   if (!state.started) startTimer();
 
   const input    = document.getElementById(`input-${idx}`);
   const feedback = document.getElementById(`feedback-${idx}`);
-  const answer   = input.value.trim().toUpperCase();
-  const correct  = ROUNDS[idx].answer.toUpperCase();
-  if (!answer) return;
+  const raw      = input.value.trim().toUpperCase();
+  if (!raw) return;
 
-  if (answer === correct) {
+  /* Disable button during async hash to prevent double-submit */
+  const btn = document.getElementById(`btn-${idx}`);
+  btn.disabled = true;
+
+  const inputHash = await sha256(raw);
+  const correct   = inputHash === ROUNDS[idx].answer;
+
+  if (correct) {
     feedback.innerHTML = '<span style="color:var(--neon-green);text-shadow:0 0 10px var(--neon-green)">✅  LAYER BREACHED — DECRYPTION CONFIRMED</span>';
     input.disabled = true;
-    document.getElementById(`btn-${idx}`).disabled = true;
-    document.getElementById(`btn-${idx}`).textContent = 'DONE ✓';
+    btn.textContent  = 'DONE ✓';
+    /* btn stays disabled */
     playSuccess();
 
     state.completed.push(idx);
@@ -694,6 +590,7 @@ function checkAnswer(idx) {
     if (next < ROUNDS.length) setTimeout(() => unlockRound(next), 800);
     else setTimeout(() => showWinScreen(), 1200);
   } else {
+    btn.disabled = false;   /* re-enable on wrong answer */
     feedback.innerHTML = '<span style="color:var(--neon-red);text-shadow:0 0 10px var(--neon-red)">❌  DECRYPTION FAILED — REANALYZE INTEL</span>';
     input.style.borderColor = 'var(--neon-red)';
     input.style.boxShadow   = '0 0 10px rgba(255,0,60,0.3)';
