@@ -91,72 +91,67 @@ function playUnlock() {
 
 /* ══════════════════════════════════════════════
    ROUNDS DATA
+   answers = SHA-256( answer.trim().toUpperCase() )
+   To generate a hash for a new answer, open the
+   browser console while the game is open and run:
+     hashAnswer('YOURWORD').then(console.log)
+   Copy the printed 64-char hex into answer field.
 ══════════════════════════════════════════════ */
 const ROUNDS = [
   {
-    id: 1,
-    title: "",
-    challenge: "",
+    id: 1, title: "", challenge: "",
     display: `? ? ? ? ? ? ? ? (8 letters)`,
     hint: "Secret key to access accounts. Should be strong & confidential. Used in login authentication.",
-    answer: "PASSWORD",
-    type: "text"
+    answer: "0be64ae89ddd24e225434de95d501711339baeee18f009ba9b4369af27d30d60"
   },
   {
-    id: 2,
-    title: "",
-    challenge: "",
+    id: 2, title: "", challenge: "",
     display: `01000011 01001111 01000100 01000101`,
     hint: "Step 1: Convert Binary → ASCII Text. Step 2: Reverse the decoded word.",
-    answer: "EDOC",
-    type: "binary"
+    answer: "75a3abce1e952d153eb25fcf2418f31f8a547d254ca63bbbe5748e332ba4cf39"
   },
   {
-    id: 3,
-    title: "",
-    challenge: "",
+    id: 3, title: "", challenge: "",
     display: `U2FmZTM=`,
     hint: "Decode the Base64 string first. Then replace any digit with its corresponding alphabet letter (1=A, 2=B, 3=C…).",
-    answer: "SAFEC",
-    type: "base64"
+    answer: "87f8142e207b8d763f9a79eddf7162318624410632c5d484694b7a3a97ce4d40"
   },
   {
-    id: 4,
-    title: "",
-    challenge: "",
+    id: 4, title: "", challenge: "",
     display: `Z H O F R P H`,
     hint: "Caesar Cipher with a shift of -3. Each letter moves 3 positions backward in the alphabet.",
-    answer: "WELCOME",
-    type: "caesar"
+    answer: "26ded0381cd50f5eb2dbd2954958d050b79bc9a6afd3f5fc356580f9510f4483"
   },
   {
-    id: 5,
-    title: "",
-    challenge: "",
+    id: 5, title: "", challenge: "",
     display: `01001100 01001111 01000011 01001011`,
     hint: "Convert each 8-bit binary group to its ASCII character. 76=L, 79=O, 67=C, 75=K.",
-    answer: "LOCK",
-    type: "binary2"
+    answer: "74c4812d040abf67ed4aca878fd35d5925655f1c4631b23bc63c6b5d11dd8dc5"
   },
   {
-    id: 6,
-    title: "",
-    challenge: "",
+    id: 6, title: "", challenge: "",
     display: `CrYpTo Is FuN AnD SeCuRe`,
     hint: "Observe each character carefully. Extract only the uppercase (capital) letters in sequence.",
-    answer: "CRYPTOFANS",
-    type: "acrostic"
+    answer: "7f3fc252d00a54275c5809f642df386a6629daadf64e06d8439c3943c693f733"
   },
   {
-    id: 7,
-    title: "",
-    challenge: "",
+    id: 7, title: "", challenge: "",
     display: `SECURE`,
     hint: "Keep all consonants unchanged. For each vowel (A,E,I,O,U), replace it with the next letter in the alphabet.",
-    answer: "SFCVRF",
-    type: "multi"
+    answer: "11b69b051409551f5cea4a447145d0d0b38a38e8365e8e630b0516aa84793337"
   }
 ];
+
+/* ── SHA-256 via Web Crypto API ──────────────────
+   async sha256(str) → 64-char hex string
+   window.hashAnswer exposed for console use only  */
+async function sha256(str) {
+  const buf = await crypto.subtle.digest(
+    'SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2,'0')).join('');
+}
+window.hashAnswer = w => sha256(w.trim().toUpperCase());
 
 /* ── Fisher-Yates shuffle ── */
 function shuffleArray(arr) {
@@ -555,30 +550,42 @@ function renderDeckUI() {
 
 function advanceDeck() {
   if (!deckCards.length) return;
-  beep(380,'square',0.06,0.12);
 
-  const inner = document.getElementById('deck-card-inner');
+  const inner   = document.getElementById('deck-card-inner');
   const counter = document.getElementById('deck-counter');
+  const nextBtn = document.getElementById('deck-next-btn');
   if (!inner) return;
 
-  /* Flip out */
+  /* Lock button during full animation cycle */
+  nextBtn.disabled = true;
+  beep(380, 'square', 0.06, 0.12);
+
+  /* ── Phase 1: flip OUT (280ms) ── */
+  inner.classList.remove('flipping-in');   /* clear any lingering class */
   inner.classList.add('flipping-out');
 
   setTimeout(() => {
+    /* Swap content while card is edge-on */
     currentDeckIdx = (currentDeckIdx + 1) % deckCards.length;
     ss(SK_DECK_IDX, String(currentDeckIdx));
     counter.textContent = `FRAGMENT ${currentDeckIdx + 1} / ${deckCards.length}`;
 
     const c = deckCards[currentDeckIdx];
-    inner.querySelector('.deck-card-front').querySelector('.deck-card-tag').textContent  = c.tag;
-    inner.querySelector('.deck-card-front').querySelector('.deck-card-text').textContent = c.text;
+    inner.querySelector('.deck-card-tag').textContent  = c.tag;
+    inner.querySelector('.deck-card-text').textContent = c.text;
 
+    /* ── Phase 2: flip IN (320ms) ── */
     inner.classList.remove('flipping-out');
     inner.classList.add('flipping-in');
-    beep(520,'square',0.05,0.1);
+    beep(520, 'square', 0.05, 0.1);
 
-    setTimeout(() => inner.classList.remove('flipping-in'), 350);
-  }, 300);
+    /* Unlock button only after flip-in finishes */
+    setTimeout(() => {
+      inner.classList.remove('flipping-in');
+      nextBtn.disabled = false;
+    }, 340);
+
+  }, 290);   /* slightly longer than flip-out duration (280ms) */
 }
 
 let hintsPanelOpen = false;   /* starts CLOSED */
@@ -663,37 +670,40 @@ function buildRounds() {
 function handleKey(e, idx) { if (e.key === 'Enter') checkAnswer(idx); }
 
 /* ══════════════════════════════════════════════
-   CHECK ANSWER
+   CHECK ANSWER  —  SHA-256 comparison.
+   Plain-text answer never exists at runtime.
 ══════════════════════════════════════════════ */
-function checkAnswer(idx) {
+async function checkAnswer(idx) {
   if (state.finished) return;
-  if (state.pausedBy) {
-    showPauseOverlay(state.pausedBy);
-    return;
-  }
+  if (state.pausedBy) { showPauseOverlay(state.pausedBy); return; }
   if (!state.started) startTimer();
 
   const input    = document.getElementById(`input-${idx}`);
   const feedback = document.getElementById(`feedback-${idx}`);
-  const answer   = input.value.trim().toUpperCase();
-  const correct  = ROUNDS[idx].answer.toUpperCase();
-  if (!answer) return;
+  const raw      = input.value.trim().toUpperCase();
+  if (!raw) return;
 
-  if (answer === correct) {
+  /* Disable submit during async hash to prevent double-fire */
+  const btn = document.getElementById(`btn-${idx}`);
+  btn.disabled = true;
+
+  const inputHash = await sha256(raw);
+  const correct   = (inputHash === ROUNDS[idx].answer);
+
+  if (correct) {
     feedback.innerHTML = '<span style="color:var(--neon-green);text-shadow:0 0 10px var(--neon-green)">✅  LAYER BREACHED — DECRYPTION CONFIRMED</span>';
-    input.disabled = true;
-    document.getElementById(`btn-${idx}`).disabled = true;
-    document.getElementById(`btn-${idx}`).textContent = 'DONE ✓';
+    input.disabled  = true;
+    btn.textContent = 'DONE ✓';
+    /* btn stays disabled */
     playSuccess();
-
     state.completed.push(idx);
     ss(SK.COMPLETED, JSON.stringify(state.completed));
     updateProgress();
-
     const next = idx + 1;
     if (next < ROUNDS.length) setTimeout(() => unlockRound(next), 800);
     else setTimeout(() => showWinScreen(), 1200);
   } else {
+    btn.disabled = false;   /* re-enable on wrong answer */
     feedback.innerHTML = '<span style="color:var(--neon-red);text-shadow:0 0 10px var(--neon-red)">❌  DECRYPTION FAILED — REANALYZE INTEL</span>';
     input.style.borderColor = 'var(--neon-red)';
     input.style.boxShadow   = '0 0 10px rgba(255,0,60,0.3)';
