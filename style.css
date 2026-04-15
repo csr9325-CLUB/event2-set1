@@ -510,35 +510,49 @@ body::before {
   transition: none;
 }
 
-/* Flip out: rotate to show back */
+/* Flip out: card rotates away — matches 280ms JS timeout */
 .deck-card-inner.flipping-out {
   animation: flip-out 0.28s ease-in forwards;
 }
 @keyframes flip-out {
-  0%   { transform: rotateY(0deg) scaleX(1); opacity: 1; }
-  100% { transform: rotateY(90deg) scaleX(0.4); opacity: 0.2; }
+  0%   { transform: rotateY(0deg)  scaleX(1);   opacity: 1;   }
+  60%  { transform: rotateY(60deg) scaleX(0.5); opacity: 0.4; }
+  100% { transform: rotateY(90deg) scaleX(0);   opacity: 0;   }
 }
 
-/* Flip in: rotate from back to front */
+/* Flip in: new card rotates into view — matches 340ms JS unlock */
 .deck-card-inner.flipping-in {
-  animation: flip-in 0.3s ease-out forwards;
+  animation: flip-in 0.32s ease-out forwards;
 }
 @keyframes flip-in {
-  0%   { transform: rotateY(-90deg) scaleX(0.4); opacity: 0.2; }
-  100% { transform: rotateY(0deg) scaleX(1); opacity: 1; }
+  0%   { transform: rotateY(-90deg) scaleX(0);   opacity: 0;   }
+  40%  { transform: rotateY(-30deg) scaleX(0.6); opacity: 0.5; }
+  100% { transform: rotateY(0deg)   scaleX(1);   opacity: 1;   }
 }
-
 .deck-card-front {
   position: absolute;
   inset: 0;
-  background: #010c18;
-  border: 1px solid #00d4ff28;
-  border-left: 3px solid var(--neon-blue);
-  padding: 18px 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  box-shadow: 0 0 20px rgba(0,212,255,0.06), inset 0 0 30px rgba(0,0,0,0.4);
+  backface-visibility: hidden;
+  transform: rotateY(0deg);
+}
+.deck-card-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  transform: rotateY(180deg);
+}
+/* Animated shimmer line sweeping across front */
+.deck-card-front::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -120%; width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0,212,255,0.06), transparent);
+  animation: cardShimmer 3.5s linear infinite;
+  pointer-events: none;
+}
+@keyframes cardShimmer {
+  0%   { left: -120%; }
+  100% { left: 160%;  }
 }
 
 .deck-card-back {
@@ -549,16 +563,16 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  backface-visibility: hidden;
-  opacity: 0;   /* shown only during animation */
+  overflow: hidden;
 }
 .deck-card-back-text {
   font-family: var(--font-display);
-  font-size: 18px;
-  color: #1a4060;
-  letter-spacing: 4px;
+  font-size: 22px;
+  color: #0e3050;
+  letter-spacing: 6px;
   text-align: center;
-  line-height: 1.6;
+  line-height: 1.8;
+  text-shadow: 0 0 12px rgba(0,212,255,0.3);
 }
 
 .deck-card-tag {
